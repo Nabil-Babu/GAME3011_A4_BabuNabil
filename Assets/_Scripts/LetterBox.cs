@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
@@ -25,7 +26,16 @@ public class LetterBox : MonoBehaviour
     
     public void SetLetter(string nLetter)
     {
-        CurrentLetter = nLetter.ToUpper(); 
+        if (nLetter == null)
+        {
+            Debug.Log("String is Null");
+            CurrentLetter = "!";
+        }
+        else
+        {
+            CurrentLetter = nLetter.ToUpper(); 
+        }
+        
     }
 
     public string GetLetter()
