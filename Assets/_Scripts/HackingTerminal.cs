@@ -16,6 +16,7 @@ public enum Difficulty
 
 public enum PlayerSkill
 {
+    AMATEUR = 0,
     NOVICE = 1,
     APPRENTICE = 2, 
     EXPERT = 3,
@@ -47,17 +48,21 @@ public class HackingTerminal : Singleton<HackingTerminal>
     private Dictionary<string, bool> phrase = new Dictionary<string, bool>();
     private int phraseLimit = 3;
     private string[,] _stringMatrix;
-    private GameObject[,] _gameObjectMatrix;
-    private float timer = 60; 
+
+    private GameObject[,] _tileGOMatrix; 
     
+    private float timer = 60;
+
+    private int correctPasswords;
+    [SerializeField] bool isPlaying = true; 
 
     private void Start()
     {
         SetDifficulty();
         
         _stringMatrix = new string[gridX, gridY];
-        _gameObjectMatrix = new GameObject[gridX, gridY];
-        
+        _tileGOMatrix = new GameObject[gridX, gridY];
+
         PickPhrase();
         InsertPhrase();
         FillMatrix();
@@ -83,6 +88,7 @@ public class HackingTerminal : Singleton<HackingTerminal>
                 GameObject addedTile = Instantiate(Tile, new Vector3(startX + (spacing * i), startY + (spacing * j), 0),
                     Quaternion.identity);
                 addedTile.transform.parent = transform;
+                _tileGOMatrix[i, j] = addedTile;
                 LetterBox addedLetter = addedTile.GetComponent<LetterBox>();
                 // Instead of random letters replace this with grabbing letter from the string Matrix
                 addedLetter.SetLetter(_stringMatrix[i,j]);
@@ -201,6 +207,7 @@ public class HackingTerminal : Singleton<HackingTerminal>
 
     public void CheckPhraseGuess(string guess)
     {
+        if (!isPlaying) return;
         string s = guess.ToLower().Trim();
         if (phrase.ContainsKey(s))
         {
@@ -208,18 +215,57 @@ public class HackingTerminal : Singleton<HackingTerminal>
             {
                 phrase[s] = true;
                 InfoPanelController.RevealWord(s);
+                correctPasswords++;
+                if (correctPasswords == phraseLimit)
+                {
+                    isPlaying = false;
+                    InfoPanelController.UnlockTerminal();
+                }
             }
         }
     }
 
     void CountDown()
     {
+        if (!isPlaying) return; 
+        
         timer -= Time.deltaTime;
         int roundedTime = (int) timer;
         if (timer <= 0)
         {
-            roundedTime = 0; 
+            isPlaying = false; 
+            roundedTime = 0;
+            InfoPanelController.FailedHack.gameObject.SetActive(true);
         }
         InfoPanelController.CurrentTime = roundedTime; 
+    }
+
+    void ResetGrid()
+    {
+        for (int i = 0; i < gridX; i++)
+        {
+            for (int j = 0; j < gridY; j++)
+            {
+                _tileGOMatrix[i,j].GetComponent<LetterBox>().SetLetter(_stringMatrix[i,j]);
+                _tileGOMatrix[i,j].GetComponent<LetterBox>().SetGridPos(i, j);
+            }
+        }
+    }
+
+    public void ResetTerminal()
+    {
+        isPlaying = true;
+        correctPasswords = 0;
+        wordSet.Clear();
+        phrase.Clear();
+        timer = 0;
+        InfoPanelController.ResetInfoPanel();
+
+        SetDifficulty();
+        _stringMatrix = new string[gridX, gridY];
+        PickPhrase();
+        InsertPhrase();
+        FillMatrix();
+        ResetGrid();
     }
 }

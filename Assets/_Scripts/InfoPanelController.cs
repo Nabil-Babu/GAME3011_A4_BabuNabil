@@ -9,7 +9,10 @@ public class InfoPanelController : MonoBehaviour
     public GameObject letterBox;
     public int NumToReveal = 2;
     public TextMeshProUGUI timer;
-
+    public TextMeshProUGUI FailedHack;
+    public TextMeshProUGUI Status;
+    public Color UnlockColor; 
+    public Color LockColor; 
     public int CurrentTime
     {
         set
@@ -20,7 +23,11 @@ public class InfoPanelController : MonoBehaviour
     
     
     [SerializeField] string[] _phrase;
-    private Dictionary<string, List<LetterBox>> _hiddenPhrase = new Dictionary<string, List<LetterBox>>(); 
+    private Dictionary<string, List<LetterBox>> _hiddenPhrase = new Dictionary<string, List<LetterBox>>();
+
+
+    private List<GameObject> allLetterBoxes = new List<GameObject>(); 
+    
     
     public void SetPhrase(string[] phrase)
     {
@@ -47,6 +54,7 @@ public class InfoPanelController : MonoBehaviour
                     );
                 
                 addedTile.transform.parent = transform;
+                allLetterBoxes.Add(addedTile);
                 LetterBox addedLetter = addedTile.GetComponent<LetterBox>();
                 addedLetter.SetLetter("*");
                 _hiddenPhrase[word].Add(addedLetter);
@@ -82,5 +90,25 @@ public class InfoPanelController : MonoBehaviour
                 _hiddenPhrase[word][i].SetLetter(word[i].ToString());
             }
         }
+    }
+
+    public void UnlockTerminal()
+    {
+        Status.text = "UNLOCKED";
+        Status.color = UnlockColor;
+    }
+
+    public void ResetInfoPanel()
+    {
+        _hiddenPhrase.Clear();
+        FailedHack.gameObject.SetActive(false);
+        Status.text = "LOCKED";
+        Status.color = LockColor;
+        foreach (var letterBox in allLetterBoxes)
+        {
+            Destroy(letterBox);
+        }
+        allLetterBoxes.Clear();
+        
     }
 }
