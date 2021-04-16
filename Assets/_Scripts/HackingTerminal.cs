@@ -6,21 +6,21 @@ using JetBrains.Annotations;
 using UnityEditorInternal;
 using UnityEngine;
 using Random = UnityEngine.Random;
-
+[System.Serializable]
 public enum Difficulty
 {
     EASY,
     MEDIUM, 
     HARD
 }
-
+[System.Serializable]
 public enum PlayerSkill
 {
-    AMATEUR = 0,
-    NOVICE = 1,
-    APPRENTICE = 2, 
-    EXPERT = 3,
-    MASTER = 4
+    AMATEUR,
+    NOVICE,
+    APPRENTICE, 
+    EXPERT,
+    MASTER
 }
 
 public class HackingTerminal : Singleton<HackingTerminal>
@@ -29,11 +29,14 @@ public class HackingTerminal : Singleton<HackingTerminal>
     public InfoPanelController InfoPanelController; 
     public int gridX, gridY;
     public float spacing = 0.5f;
-
+    public const int MAX_X = 15;
+    public const int MAX_Y = 15;
     public Vector3 easyPosition;
     public Vector3 medPosition;
     public Vector3 hardPosition;
-    
+
+    public Color regularColor;
+    public Color highlightColor; 
     
     public TextAsset wordPool4Letters;
     public TextAsset wordPool5Letters;
@@ -46,10 +49,11 @@ public class HackingTerminal : Singleton<HackingTerminal>
     private string[] letters = new string[26]
         {"!", "b", "c", "d", "+", "f", "g", "h", "~", "j", "k", "l", "m", "n", "?", "p", "q", "r", "s", "t", "=", "v", "w", "x", "y", "z"};
     private Dictionary<string, bool> phrase = new Dictionary<string, bool>();
+    private Dictionary<string, List<LetterBox>> phraseToLetters = new Dictionary<string, List<LetterBox>>();
     private int phraseLimit = 3;
     private string[,] _stringMatrix;
 
-    private GameObject[,] _tileGOMatrix; 
+    private GameObject[,] _tileGOMatrix = new GameObject[MAX_X, MAX_Y];
     
     private float timer = 60;
 
@@ -58,15 +62,17 @@ public class HackingTerminal : Singleton<HackingTerminal>
 
     private void Start()
     {
+        GenerateGrid();
         SetDifficulty();
-        
         _stringMatrix = new string[gridX, gridY];
-        _tileGOMatrix = new GameObject[gridX, gridY];
-
         PickPhrase();
         InsertPhrase();
         FillMatrix();
-        GenerateGrid();
+        FillGrid();
+
+        InfoPanelController.currentDifficulty = HackDifficulty;
+        InfoPanelController.currentPlayerSkill = PlayerSkill;
+
     }
 
     private void Update()
@@ -81,18 +87,16 @@ public class HackingTerminal : Singleton<HackingTerminal>
         float startY = transform.position.y;
         
         
-        for (int i = 0; i < gridX; i++)
+        for (int i = 0; i < MAX_X; i++)
         {
-            for (int j = 0; j < gridY; j++)
+            for (int j = 0; j < MAX_Y; j++)
             {
                 GameObject addedTile = Instantiate(Tile, new Vector3(startX + (spacing * i), startY + (spacing * j), 0),
                     Quaternion.identity);
                 addedTile.transform.parent = transform;
+                addedTile.SetActive(false);
+                addedTile.GetComponent<LetterBox>().SetGridPos(i,j);
                 _tileGOMatrix[i, j] = addedTile;
-                LetterBox addedLetter = addedTile.GetComponent<LetterBox>();
-                // Instead of random letters replace this with grabbing letter from the string Matrix
-                addedLetter.SetLetter(_stringMatrix[i,j]);
-                addedLetter.SetGridPos(i, j);
             }
         }
     }
@@ -110,6 +114,7 @@ public class HackingTerminal : Singleton<HackingTerminal>
             {
                 availableWords.Remove(pickedWord);
                 phrase.Add(pickedWord.Trim(), false);
+                phraseToLetters.Add(pickedWord.Trim(), new List<LetterBox>());
                 count++; 
             }
         }
@@ -188,7 +193,8 @@ public class HackingTerminal : Singleton<HackingTerminal>
 
         for (int i = 0; i < word.Length; i++)
         {
-            _stringMatrix[xPos + i, yPos] = word[i].ToString(); 
+            _stringMatrix[xPos + i, yPos] = word[i].ToString();
+            phraseToLetters[word].Add(_tileGOMatrix[xPos+i, yPos].GetComponent<LetterBox>());
         }
         
         return true; 
@@ -211,10 +217,11 @@ public class HackingTerminal : Singleton<HackingTerminal>
         string s = guess.ToLower().Trim();
         if (phrase.ContainsKey(s))
         {
-            if (!phrase[s])
+            if (!phrase[s]) // Phrase is not found already
             {
                 phrase[s] = true;
                 InfoPanelController.RevealWord(s);
+                HighlightWord(s);
                 correctPasswords++;
                 if (correctPasswords == phraseLimit)
                 {
@@ -240,15 +247,39 @@ public class HackingTerminal : Singleton<HackingTerminal>
         InfoPanelController.CurrentTime = roundedTime; 
     }
 
-    void ResetGrid()
+    void FillGrid()
     {
         for (int i = 0; i < gridX; i++)
         {
             for (int j = 0; j < gridY; j++)
             {
+                _tileGOMatrix[i,j].SetActive(true);
+                //_tileGOMatrix[i,j].GetComponent<LetterBox>().ChangeBackgroundColor(regularColor);
                 _tileGOMatrix[i,j].GetComponent<LetterBox>().SetLetter(_stringMatrix[i,j]);
                 _tileGOMatrix[i,j].GetComponent<LetterBox>().SetGridPos(i, j);
             }
+        }
+    }
+
+    void ResetGrid()
+    {
+        for (int i = 0; i < MAX_X; i++)
+        {
+            for (int j = 0; j < MAX_Y; j++)
+            {
+                _tileGOMatrix[i,j].SetActive(false);
+                _tileGOMatrix[i,j].GetComponent<LetterBox>().ChangeBackgroundColor(regularColor);
+                _tileGOMatrix[i,j].GetComponent<LetterBox>().SetLetter("");
+                _tileGOMatrix[i,j].GetComponent<LetterBox>().SetGridPos(i, j);
+            }
+        }
+    }
+
+    void HighlightWord(string word)
+    {
+        foreach (var phraseLetter in phraseToLetters[word])
+        {
+            phraseLetter.ChangeBackgroundColor(highlightColor);
         }
     }
 
@@ -258,14 +289,19 @@ public class HackingTerminal : Singleton<HackingTerminal>
         correctPasswords = 0;
         wordSet.Clear();
         phrase.Clear();
+        phraseToLetters.Clear();
         timer = 0;
         InfoPanelController.ResetInfoPanel();
-
+        
+        ResetGrid();
         SetDifficulty();
         _stringMatrix = new string[gridX, gridY];
         PickPhrase();
         InsertPhrase();
         FillMatrix();
-        ResetGrid();
+        FillGrid();
+        
+        InfoPanelController.currentDifficulty = HackDifficulty;
+        InfoPanelController.currentPlayerSkill = PlayerSkill;
     }
 }

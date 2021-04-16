@@ -11,8 +11,12 @@ public class InfoPanelController : MonoBehaviour
     public TextMeshProUGUI timer;
     public TextMeshProUGUI FailedHack;
     public TextMeshProUGUI Status;
+    public TextMeshProUGUI PlayerSkill;
+    public TextMeshProUGUI HackDifficulty;
     public Color UnlockColor; 
     public Color LockColor; 
+    
+    // properties
     public int CurrentTime
     {
         set
@@ -20,7 +24,50 @@ public class InfoPanelController : MonoBehaviour
             timer.text = value.ToString(); 
         }
     }
-    
+
+    public Difficulty currentDifficulty
+    {
+        set
+        {
+            switch (value)
+            {
+                case Difficulty.EASY:
+                    HackDifficulty.text = "Hack Level: Easy";
+                    break;
+                case Difficulty.MEDIUM:
+                    HackDifficulty.text = "Hack Level: Medium";
+                    break;
+                case Difficulty.HARD:
+                    HackDifficulty.text = "Hack Level: Hard";
+                    break;
+            }
+        }
+    }
+
+    public PlayerSkill currentPlayerSkill
+    {
+        set
+        {
+            switch (value)
+            {
+                case global::PlayerSkill.AMATEUR:
+                    PlayerSkill.text="Hacking Skill: Amateur";
+                    break;
+                case global::PlayerSkill.APPRENTICE:
+                    PlayerSkill.text="Hacking Skill: Apprentice";
+                    break;
+                case global::PlayerSkill.NOVICE:
+                    PlayerSkill.text="Hacking Skill: Novice";
+                    break;
+                case global::PlayerSkill.EXPERT:
+                    PlayerSkill.text="Hacking Skill: Expert";
+                    break;
+                case global::PlayerSkill.MASTER:
+                    PlayerSkill.text="Hacking Skill: Master";
+                    break;
+            }
+        }
+    }
     
     [SerializeField] string[] _phrase;
     private Dictionary<string, List<LetterBox>> _hiddenPhrase = new Dictionary<string, List<LetterBox>>();
@@ -94,7 +141,7 @@ public class InfoPanelController : MonoBehaviour
 
     public void UnlockTerminal()
     {
-        Status.text = "UNLOCKED";
+        Status.text = "Status: UNLOCKED";
         Status.color = UnlockColor;
     }
 
@@ -102,7 +149,7 @@ public class InfoPanelController : MonoBehaviour
     {
         _hiddenPhrase.Clear();
         FailedHack.gameObject.SetActive(false);
-        Status.text = "LOCKED";
+        Status.text = "Status: LOCKED";
         Status.color = LockColor;
         foreach (var letterBox in allLetterBoxes)
         {

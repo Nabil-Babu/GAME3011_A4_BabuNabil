@@ -48,5 +48,10 @@ public class LetterBox : MonoBehaviour
         x = nX;
         y = nY;
     }
+
+    public void ChangeBackgroundColor(Color color)
+    {
+        background.color = color; 
+    }
     
 }
